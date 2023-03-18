@@ -11,6 +11,8 @@
 %%% -------------------------------------------------------------------
 -module(all).      
     
+-include("db_log.hrl").
+
 -export([start/1
 
 	]).
@@ -25,7 +27,7 @@ start([_ClusterSpec,_HostSpec])->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
     
     ok=setup(),
- %   ok=test_local(),
+  %  ok=test_local(),
     ok=test_1(),
    
     io:format("Stop OK !!! ~p~n",[{?MODULE,?FUNCTION_NAME}]),
@@ -45,13 +47,13 @@ test_local()->
     
     ok=application:start(log),
     pong=log:ping(),
-    true=log:notice(?MODULE,?FUNCTION_NAME,?LINE,"server start",[atom,"string",{term,1,2,"string"}]),
+    true=?NoticeLogMsg(?MODULE,?FUNCTION_NAME,?LINE,"server start",[atom,"string",{term,1,2,"string"}]),
 
-    true=log:notice(?MODULE,?FUNCTION_NAME,?LINE,"event 1",[event_info1]),
-    true=log:notice(?MODULE,?FUNCTION_NAME,?LINE,"event 2",[event_info2]),
-    true=log:warning(?MODULE,?FUNCTION_NAME,?LINE,"warning1",[warning_info1]),
-    true=log:alert(?MODULE,?FUNCTION_NAME,?LINE,"alert 1",[alert_info1]),
-    true=log:debug(?MODULE,?FUNCTION_NAME,?LINE,"debug 1",[debug_info1]),
+    true=?NoticeLogMsg(?MODULE,?FUNCTION_NAME,?LINE,"event 1",[event_info1]),
+    true=?NoticeLogMsg(?MODULE,?FUNCTION_NAME,?LINE,"event 2",[event_info2]),
+    true=?WarningLogMsg(?MODULE,?FUNCTION_NAME,?LINE,"warning1",[warning_info1]),
+    true=?AlertLogMsg(?MODULE,?FUNCTION_NAME,?LINE,"alert 1",[alert_info1]),
+    true=?DebugLogMsg(?MODULE,?FUNCTION_NAME,?LINE,"debug 1",[debug_info1]),
     
     
 
@@ -98,94 +100,40 @@ test_1()->
     pong=rpc:call(N1,db,ping,[],5000),
 
     [N1]=lists:sort(rpc:call(N1,mnesia,system_info,[running_db_nodes],5000)),
-     
-    sd:cast(log,log,notice,[?MODULE,?FUNCTION_NAME,?LINE,
-			    "server start",
-			    [atom,"string",{term,1,2,"string"}]
-			   ]),
-    [
-      {_,_,_,_,_,_,_,notice,"server start",[atom,"string",{term,1,2,"string"}]}
-    ]=rpc:call(N1,log,all_raw,[],5000),
     io:format("N1 dist OK! ~p~n",[{?MODULE,?LINE}]),
-
+    true=sd:cast(log,db_log,create,?NoticeInfo(?MODULE,?FUNCTION_NAME,?LINE,"server start",[atom,"string",{term,1,2,"string"}])),
+    [{_,_,_,_,_,_,_,notice,"server start",[atom,"string",{term,1,2,"string"}]}]=sd:call(log,db_log,all_raw,[],5000),
+    
+    true=sd:cast(log,db_log,create,?NoticeInfo(?MODULE,?FUNCTION_NAME,?LINE,"server start",[atom,"string",{term,1,2,"string"}])),
 
     %% N2
-    ok=rpc:call(N2,application,start,[log],5000),
-    pong=rpc:call(N2,log,ping,[],5000),
+    ok=rpc:call(N2,application,start,[etcd],5000),
+    pong=rpc:call(N2,etcd,ping,[],5000),
     pong=rpc:call(N2,db,ping,[],5000),
     [N1,N2]=lists:sort(rpc:call(N1,mnesia,system_info,[running_db_nodes],5000)),
     [N1,N2]=lists:sort(rpc:call(N2,mnesia,system_info,[running_db_nodes],5000)),
  %   yes=rpc:call(N2,mnesia,system_info,[],5000),
-    [
-     {_,_,_,_,_,_,_,notice,"server start",[atom,"string",{term,1,2,"string"}]}
-    ]=rpc:call(N2,log,all_raw,[],5000),
-    true=rpc:cast(N2,log,notice,[?MODULE,?FUNCTION_NAME,?LINE,
-			    "event 1",[event_info1]
-			   ]),
-    timer:sleep(1000),
-    [
-     {_,_,_,_,_,_,_,notice,"event 1",[event_info1]},
-     {_,_,_,_,_,_,_,notice,"server start",[atom,"string",{term,1,2,"string"}]}
-    ]=rpc:call(N1,log,all_raw,[],5000),
-    [
-     {_,_,_,_,_,_,_,notice,"event 1",[event_info1]},
-     {_,_,_,_,_,_,_,notice,"server start",[atom,"string",{term,1,2,"string"}]}
-    ]=rpc:call(N2,log,all_raw,[],5000),
-    
     io:format("N2 dist OK! ~p~n",[{?MODULE,?LINE}]),
 
-
   %% N3
-    ok=rpc:call(N3,application,start,[log],5000),
-    pong=rpc:call(N3,log,ping,[],5000),
+    ok=rpc:call(N3,application,start,[etcd],5000),
+    pong=rpc:call(N3,etcd,ping,[],5000),
     pong=rpc:call(N3,db,ping,[],5000),
   
     [N1,N2,N3]=lists:sort(rpc:call(N1,mnesia,system_info,[running_db_nodes],5000)),
     [N1,N2,N3]=lists:sort(rpc:call(N2,mnesia,system_info,[running_db_nodes],5000)),
     [N1,N2,N3]=lists:sort(rpc:call(N3,mnesia,system_info,[running_db_nodes],5000)),
-
-    true=rpc:cast(N1,log,notice,[?MODULE,?FUNCTION_NAME,?LINE,"event 2",[event_info2]]),
-    true=rpc:cast(N2,log,warning,[?MODULE,?FUNCTION_NAME,?LINE,"warning1",[warning_info1]]),
-    true=rpc:cast(N3,log,alert,[?MODULE,?FUNCTION_NAME,?LINE,"alert 1",[alert_info1]]),
-
  %   yes=rpc:call(N3,mnesia,system_info,[],5000),
     io:format("N3 dist OK! ~p~n",[{?MODULE,?LINE}]),
  %% N4
-    ok=rpc:call(N4,application,start,[log],5000),
-    pong=rpc:call(N4,log,ping,[],5000),
+    ok=rpc:call(N4,application,start,[etcd],5000),
+    pong=rpc:call(N4,etcd,ping,[],5000),
     pong=rpc:call(N4,db,ping,[],5000),
     [N1,N2,N3,N4]=lists:sort(rpc:call(N1,mnesia,system_info,[running_db_nodes],5000)),
     [N1,N2,N3,N4]=lists:sort(rpc:call(N2,mnesia,system_info,[running_db_nodes],5000)),
     [N1,N2,N3,N4]=lists:sort(rpc:call(N3,mnesia,system_info,[running_db_nodes],5000)),
     [N1,N2,N3,N4]=lists:sort(rpc:call(N4,mnesia,system_info,[running_db_nodes],5000)),
    
-    true=rpc:cast(N4,log,debug,[?MODULE,?FUNCTION_NAME,?LINE,"debug 1",[debug_info1]]),
-
-    [
-     {_,_,_,_,_,_,_,notice,"event 2",[event_info2]},
-     {_,_,_,_,_,_,_,notice,"event 1",[event_info1]},
-     {_,_,_,_,_,_,_,notice,"server start",[atom,"string",{term,1,2,"string"}]}
-    ]=rpc:call(N4,log,all_raw,[notice],5000),
-    [
-     {_,_,_,_,_,_,_,warning,"warning1",[warning_info1]}
-    ]=rpc:call(N1,log,all_raw,[warning],5000),
-    
-    [
-     {_,_,_,_,_,_,_,alert,"alert 1",[alert_info1]}
-    ]=rpc:call(N1,log,all_raw,[alert],5000),
-    %%
-    [
-     {_,_,_,_,_,_,_,debug,"debug 1",[debug_info1]}
-    ]=rpc:call(N4,log,all_raw,[debug],5000),
-    [
-     {_,_,_,_,_,_,_,debug,"debug 1",[debug_info1]}
-    ]=rpc:call(N3,log,all_raw,[debug],5000),
-    [
-     {_,_,_,_,_,_,_,debug,"debug 1",[debug_info1]}
-    ]=rpc:call(N1,log,all_raw,[debug],5000),
-    [
-     {_,_,_,_,_,_,_,debug,"debug 1",[debug_info1]}
-    ]=rpc:call(N2,log,all_raw,[debug],5000),
  %   yes=rpc:call(N4,mnesia,system_info,[],5000),
     io:format("N4 dist OK! ~p~n",[{?MODULE,?LINE}]),
     ok.
