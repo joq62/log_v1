@@ -37,7 +37,8 @@
 %%--------------------------------------------------------------------
 all_raw()->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-    Z1=lists:reverse(Z),
+  %  Z1=lists:reverse(Z),
+    Z1=Z,
     [{R#?RECORD.timestamp,R#?RECORD.date,R#?RECORD.time,
       R#?RECORD.module,R#?RECORD.function,R#?RECORD.line,R#?RECORD.node,
       R#?RECORD.severity,R#?RECORD.key,R#?RECORD.info}||R<-Z1].
@@ -49,7 +50,8 @@ all_parsed()->
 all_raw(Severity)->
     Z=do(qlc:q([X || X <- mnesia:table(?TABLE),		
 		     X#?RECORD.severity==Severity])),
-    Z1=lists:reverse(Z),
+  %  Z1=lists:reverse(Z),
+    Z1=Z,
     [{R#?RECORD.timestamp,R#?RECORD.date,R#?RECORD.time,
       R#?RECORD.module,R#?RECORD.function,R#?RECORD.line,R#?RECORD.node,
       R#?RECORD.severity,R#?RECORD.key,R#?RECORD.info}||R<-Z1].
