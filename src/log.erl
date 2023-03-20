@@ -42,27 +42,31 @@ all_parsed(Severity)->
     rpc:call(node(),db_log,all_parsed,[Severity],5000).
 
 notice(Module,Function,Line,Key,Info)->
+    Node=node(),
     rpc:cast(node(),db_log,create,[os:system_time(?SystemTimeUnit),
 				   date(),time(),
-				   Module,Function,Line,node(),
+				   Module,Function,Line,Node,
 				   notice,Key,Info]).
 
 warning(Module,Function,Line,Key,Info)->
+    Node=node(),
     rpc:cast(node(),db_log,create,[os:system_time(?SystemTimeUnit),
 				   date(),time(),
-				   Module,Function,Line,node(),
+				   Module,Function,Line,Node,
 				   warning,Key,Info]).
 
 alert(Module,Function,Line,Key,Info)->
+    Node=node(),
     rpc:cast(node(),db_log,create,[os:system_time(?SystemTimeUnit),
 				   date(),time(),
-				   Module,Function,Line,node(),
+				   Module,Function,Line,Node,
 				   alert,Key,Info]).
 
 debug(Module,Function,Line,Key,Info)->
+    Node=node(),
     rpc:cast(node(),db_log,create,[os:system_time(?SystemTimeUnit),
 				   date(),time(),
-				   Module,Function,Line,node(),
+				   Module,Function,Line,Node,
 				   debug,Key,Info]).
 
 
