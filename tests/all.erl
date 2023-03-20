@@ -25,14 +25,51 @@ start([_ClusterSpec,_HostSpec])->
     io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME}]),
     
     ok=setup(),
+    ok=test_limit(),
  %   ok=test_local(),
-    ok=test_1(),
+  %  ok=test_1(),
    
     io:format("Stop OK !!! ~p~n",[{?MODULE,?FUNCTION_NAME}]),
     io:format(" init stop ~p~n",[init:stop()]),
     timer:sleep(2000),
 
     ok.
+%%--------------------------------------------------------------------
+%% @doc
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+test_limit()->
+    io:format("Start ~p~n",[{?MODULE,?FUNCTION_NAME,?LINE}]),
+    ok=application:start(common),
+    ok=application:start(sd),
+    
+    ok=application:start(log),
+    pong=log:ping(),
+       
+    io:format("Start create ~p~n",[{os:system_time(millisecond),?MODULE,?FUNCTION_NAME,?LINE}]),
+    T1=os:system_time(millisecond),
+    create(300,0),
+    T2=os:system_time(millisecond),
+    io:format("Stop create ~p~n",[{os:system_time(millisecond),?MODULE,?FUNCTION_NAME,?LINE}]),
+    AllParsedDebug=db_log:all_parsed(debug),
+    
+    io:format("AllParsedDebug ~p~n",[AllParsedDebug]),
+    io:format("Time ~p~n",[{(T2-T1)/1000,"sec ",length(AllParsedDebug)}]),
+    
+    ok=application:stop(common),
+    ok=application:stop(sd),
+
+    ok.
+   
+
+create(0,_)->
+    ok;
+create(N,Acc) ->
+    true=log:debug(?MODULE,?FUNCTION_NAME,?LINE,integer_to_list(Acc),[Acc]),
+    timer:sleep(10),
+    create(N-1,Acc+1).
+    
 %%--------------------------------------------------------------------
 %% @doc
 %% @spec

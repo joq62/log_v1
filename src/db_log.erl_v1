@@ -99,34 +99,22 @@ add_node(Node,StorageType)->
 %% @spec
 %% @end
 %%--------------------------------------------------------------------
--define(MaxNumMsg,1*1000).
+
 create(TimeStamp,Date,Time,Module,Function,Line,Node,Severity,Key,Info)->
-     F = fun() ->
-		 Record=#?RECORD{
-				 timestamp=TimeStamp,
-				 date=Date,
-				 time=Time,
-				 module=Module,
-				 function=Function,
-				 line=Line,
-				 node=Node,
-				 severity=Severity,
-				 key=Key,
-				 info=Info	   
-				},
-		 mnesia:write(Record),
-		 [First|AllRecords]=do(qlc:q([X || X <- mnesia:table(?TABLE)])),
-		 case length(AllRecords)>?MaxNumMsg of
-		     false->
-			 ok;
-		     true->
-			 % ToDelete=lists:sublist(AllRecords,?CleanNumBuffer),
-			 mnesia:delete({?TABLE,First#?RECORD.timestamp}),
-			 ok
-		 end
-	 end,
+    Record=#?RECORD{
+		    timestamp=TimeStamp,
+		    date=Date,
+		    time=Time,
+		    module=Module,
+		    function=Function,
+		    line=Line,
+		    node=Node,
+		    severity=Severity,
+		    key=Key,
+		    info=Info	   
+		   },
+    F = fun() -> mnesia:write(Record) end,
     mnesia:transaction(F).
-   
 
 %%--------------------------------------------------------------------
 %% @doc
